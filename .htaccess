@@ -1,0 +1,93 @@
+# Multiple Environment config
+# Set this to development, staging or production
+# SetEnv PYRO_ENV production
+
+<IfModule mod_rewrite.c>
+
+    # Make sure directory listing is disabled
+	Options +FollowSymLinks -Indexes
+	RewriteEngine on
+
+	## LIMIT UPLOAD FILE SIZE TO PROTECT AGAINST DOS ATTACK
+	#bytes, 0-2147483647(2GB), 5242880 = 5MB
+	#LimitRequestBody 10240000
+	LimitRequestBody 5242880
+
+	# NOTICE: If you get a 404 play with combinations of the following commented out lines
+	#AllowOverride All
+	#RewriteBase /wherever/pyro/is
+
+	# Restrict your site to only one domain
+	# !important USE ONLY ONE OPTION
+
+	# Option 1: To rewrite "www.domain.com -> domain.com" uncomment the following lines.
+	#RewriteCond %{HTTPS} !=on
+	#RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+	#RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+	# Option 2: To rewrite "domain.com -> www.domain.com" uncomment the following lines.
+	RewriteCond %{HTTPS} !=on
+	RewriteCond %{HTTP_HOST} !^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}+$ [NC]
+	RewriteCond %{HTTP_HOST} !^www\..+$ [NC]
+	RewriteCond %{HTTP_HOST} (.+)$ [NC]
+	RewriteRule ^(.*)$ http://www.%1/$1 [R=301,L]
+	
+	RewriteCond %{HTTPS} ==on
+	RewriteCond %{HTTP_HOST} !^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}+$ [NC]
+	RewriteCond %{HTTP_HOST} !^www\..+$ [NC]
+	RewriteCond %{HTTP_HOST} (.+)$ [NC]
+	RewriteRule ^(.*)$ https://www.%1/$1 [R=301,L]
+
+	# Remove index.php from URL
+	#RewriteCond %{HTTP:X-Requested-With}	!^XMLHttpRequest$
+	#RewriteCond %{THE_REQUEST}				^[^/]*/index\.php [NC]
+	#RewriteRule ^index\.php(.*)$			$1 [R=301,NS,L]
+
+	# Keep people out of codeigniter directory and Git/Mercurial data
+	RedirectMatch 403 ^/(system\/cms\/cache|system\/codeigniter|\.git|\.hg).*$
+
+	# Send request via index.php (again, not if its a real file or folder)
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+
+	<IfModule mod_php5.c>
+		RewriteRule ^(.*)$ index.php/$1 [L]
+	</IfModule>
+
+	<IfModule !mod_php5.c>
+		RewriteRule ^(.*)$ index.php?/$1 [L]
+	</IfModule>
+
+	<IfModule mod_headers.c>
+	# No ETags, No Pragma
+	Header unset Pragma
+	Header unset ETag
+	# Default cache time to 1 year (31536000 sec)
+	Header set Cache-Control "max-age=31536000, public, must-revalidate"
+	</IfModule>
+
+	<IfModule mod_expires.c>
+	ExpiresActive On
+	ExpiresByType image/gif "access 1 month"
+	ExpiresByType image/jpeg "access 1 month"
+	ExpiresByType image/png "access 1 month"
+	ExpiresByType application/x-javascript "access 1 month"
+	ExpiresByType application/javascript "access 1 month"
+	ExpiresByType text/css "access 1 month"
+	ExpiresByType image/x-icon "access 1 month"
+	ExpiresByType video/ogg "access 1 month"
+	ExpiresByType audio/ogg "access 1 month"
+	ExpiresByType video/mp4 "access 1 month"
+	ExpiresByType video/webm "access 1 month"
+	</IfModule>
+
+	# No cache for php-files
+	<FilesMatch "\.(php)$">
+	<IfModule mod_expires.c>
+	ExpiresActive Off
+	</IfModule>
+	<IfModule mod_headers.c>
+	Header set Cache-Control "private, no-cache, no-store, proxy-revalidate, no-transform"
+	</IfModule>
+	</FilesMatch>
+</IfModule>
